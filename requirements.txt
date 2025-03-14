@@ -5,3 +5,7 @@ streamlit
 plotly
 scipy
 scikit-learn
+pandas
+numpy
+plotly
+scikit-learn
