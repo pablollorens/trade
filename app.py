@@ -14,14 +14,13 @@ if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
     df['Datetime'] = pd.to_datetime(df['Datetime'], errors='coerce')
 
-    # Ensure the required columns exist
+    # Ensure required columns exist
     required_columns = ["Duration", "MAE", "MFE"]
     if not all(col in df.columns for col in required_columns):
         st.error("Error: Required columns ('Duration', 'MAE', 'MFE') not found in the uploaded CSV.")
     else:
-        # Extract Day of the Week from Column C and ensure it's properly formatted
+        # Extract Day of the Week from Column C and ensure it's formatted correctly
         df.rename(columns={df.columns[2]: "DayOfWeek"}, inplace=True)
-
         df['Duration'] = pd.to_numeric(df['Duration'], errors='coerce')
         df['DayOfWeek'] = df['DayOfWeek'].astype(str)
 
@@ -53,43 +52,58 @@ if uploaded_file is not None:
         )
 
         # Filter data based on timeframe selection
-        if timeframe == "1-Year":
-            filtered_df = df[df['Datetime'] >= one_year_ago]
-        elif timeframe == "6-Month":
-            filtered_df = df[df['Datetime'] >= six_months_ago]
-        else:
-            filtered_df = df[df['Datetime'] >= three_months_ago]
+        df_1y = df[df['Datetime'] >= one_year_ago]
+        df_6m = df[df['Datetime'] >= six_months_ago]
+        df_3m = df[df['Datetime'] >= three_months_ago]
 
         # Apply day-of-the-week filter
-        filtered_df = filtered_df[filtered_df['DayOfWeek'].isin(days_selected)]
+        df_1y = df_1y[df_1y['DayOfWeek'].isin(days_selected)]
+        df_6m = df_6m[df_6m['DayOfWeek'].isin(days_selected)]
+        df_3m = df_3m[df_3m['DayOfWeek'].isin(days_selected)]
 
         # Apply trade duration filter
-        filtered_df = filtered_df[
-            (filtered_df["Duration"] >= min_duration) & (filtered_df["Duration"] <= max_duration)
-        ]
+        df_1y = df_1y[(df_1y["Duration"] >= min_duration) & (df_1y["Duration"] <= max_duration)]
+        df_6m = df_6m[(df_6m["Duration"] >= min_duration) & (df_6m["Duration"] <= max_duration)]
+        df_3m = df_3m[(df_3m["Duration"] >= min_duration) & (df_3m["Duration"] <= max_duration)]
 
-        # Extract MAE & MFE
-        filtered_df = filtered_df[['MAE', 'MFE']].dropna()
-
-        # Define new percentile settings
+        # Define percentile settings
         mae_percentiles_values = [0.7, 0.8, 0.9]  # 70th, 80th, 90th for MAE
         mfe_percentiles_values = [0.3, 0.2, 0.1]  # 30th, 20th, 10th for MFE
 
-        # Calculate percentiles
-        percentile_data = {
-            "Percentile": [f"{int(p * 100)}th" for p in mae_percentiles_values],
-            "MAE": [filtered_df['MAE'].quantile(p) for p in mae_percentiles_values],
-            "MFE": [filtered_df['MFE'].quantile(p) for p in mfe_percentiles_values]
+        # Compute MAE and MFE percentiles
+        mae_percentiles = {
+            "1Yr": [df_1y['MAE'].quantile(p) for p in mae_percentiles_values],
+            "6Mo": [df_6m['MAE'].quantile(p) for p in mae_percentiles_values],
+            "3Mo": [df_3m['MAE'].quantile(p) for p in mae_percentiles_values],
+        }
+
+        mfe_percentiles = {
+            "1Yr": [df_1y['MFE'].quantile(p) for p in mfe_percentiles_values],
+            "6Mo": [df_6m['MFE'].quantile(p) for p in mfe_percentiles_values],
+            "3Mo": [df_3m['MFE'].quantile(p) for p in mfe_percentiles_values],
+        }
+
+        # Compute median of each percentile across the 3 timeframes
+        total_median_mae = [np.median([mae_percentiles["1Yr"][i], mae_percentiles["6Mo"][i], mae_percentiles["3Mo"][i]]) for i in range(3)]
+        total_median_mfe = [np.median([mfe_percentiles["1Yr"][i], mfe_percentiles["6Mo"][i], mfe_percentiles["3Mo"][i]]) for i in range(3)]
+
+        # Format the structured table
+        structured_table_data = {
+            "Percentile": ["MAE 80th", "MAE 90th", "MFE 20th", "MFE 10th"],
+            "1Yr": [mae_percentiles["1Yr"][1], mae_percentiles["1Yr"][2], mfe_percentiles["1Yr"][1], mfe_percentiles["1Yr"][2]],
+            "6Mo": [mae_percentiles["6Mo"][1], mae_percentiles["6Mo"][2], mfe_percentiles["6Mo"][1], mfe_percentiles["6Mo"][2]],
+            "3Mo": [mae_percentiles["3Mo"][1], mae_percentiles["3Mo"][2], mfe_percentiles["3Mo"][1], mfe_percentiles["3Mo"][2]],
+            "Total Median": [total_median_mae[1], total_median_mae[2], total_median_mfe[1], total_median_mfe[2]],
         }
 
         # Convert to DataFrame and display as a table
-        percentile_df = pd.DataFrame(percentile_data)
-        st.subheader("📋 MAE & MFE Percentiles")
-        st.dataframe(percentile_df)
+        structured_table_df = pd.DataFrame(structured_table_data)
+        st.subheader("📋 MAE & MFE Percentile Table")
+        st.dataframe(structured_table_df)
 
         # Compute SL/TP based on median percentiles
-        sl = np.median(percentile_df['MAE'])
-        tp = np.median(percentile_df['MFE'])
+        sl = np.median(total_median_mae)
+        tp = np.median(total_median_mfe)
 
         st.subheader("📌 Suggested SL/TP Levels")
         st.write(f"🔹 **Stop-Loss (SL):** {sl:.2f}")
@@ -97,7 +111,7 @@ if uploaded_file is not None:
 
         # Scatter Plot Visualization
         st.subheader("📈 MAE vs. MFE Scatter Plot")
-        fig = px.scatter(filtered_df, x="MAE", y="MFE", title="Scatter Plot of MAE vs MFE",
+        fig = px.scatter(df_1y, x="MAE", y="MFE", title="Scatter Plot of MAE vs MFE",
                         labels={"MAE": "Maximum Adverse Excursion", "MFE": "Maximum Favorable Excursion"})
         st.plotly_chart(fig)
 
