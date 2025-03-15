@@ -87,40 +87,16 @@ if uploaded_file is not None:
         total_median_mae = [np.median([mae_percentiles["1Yr"][i], mae_percentiles["6Mo"][i], mae_percentiles["3Mo"][i]]) for i in range(3)]
         total_median_mfe = [np.median([mfe_percentiles["1Yr"][i], mfe_percentiles["6Mo"][i], mfe_percentiles["3Mo"][i]]) for i in range(3)]
 
-        # Display separate tables for each percentile group
+        # Calculate Expected Value (EV) using the median MFE and MAE
+        ev_values = [(total_median_mfe[i] - total_median_mae[i]) for i in range(3)]
 
-        # MAE 90th & MFE 10th
-        st.subheader("📋 MAE 90th & MFE 10th Percentile Table")
-        df_90_10 = pd.DataFrame({
-            "Percentile": ["MAE 90th", "MFE 10th"],
-            "1Yr": [mae_percentiles["1Yr"][2], mfe_percentiles["1Yr"][2]],
-            "6Mo": [mae_percentiles["6Mo"][2], mfe_percentiles["6Mo"][2]],
-            "3Mo": [mae_percentiles["3Mo"][2], mfe_percentiles["3Mo"][2]],
-            "Total Median": [total_median_mae[2], total_median_mfe[2]]
+        # Display Expected Value Table
+        st.subheader("📊 Expected Value (EV) Based on Median MFE & MAE")
+        ev_table = pd.DataFrame({
+            "Percentile": ["EV (70th MAE, 30th MFE)", "EV (80th MAE, 20th MFE)", "EV (90th MAE, 10th MFE)"],
+            "Expected Value": ev_values
         })
-        st.dataframe(df_90_10)
-
-        # MAE 80th & MFE 20th
-        st.subheader("📋 MAE 80th & MFE 20th Percentile Table")
-        df_80_20 = pd.DataFrame({
-            "Percentile": ["MAE 80th", "MFE 20th"],
-            "1Yr": [mae_percentiles["1Yr"][1], mfe_percentiles["1Yr"][1]],
-            "6Mo": [mae_percentiles["6Mo"][1], mfe_percentiles["6Mo"][1]],
-            "3Mo": [mae_percentiles["3Mo"][1], mfe_percentiles["3Mo"][1]],
-            "Total Median": [total_median_mae[1], total_median_mfe[1]]
-        })
-        st.dataframe(df_80_20)
-
-        # MAE 70th & MFE 30th
-        st.subheader("📋 MAE 70th & MFE 30th Percentile Table")
-        df_70_30 = pd.DataFrame({
-            "Percentile": ["MAE 70th", "MFE 30th"],
-            "1Yr": [mae_percentiles["1Yr"][0], mfe_percentiles["1Yr"][0]],
-            "6Mo": [mae_percentiles["6Mo"][0], mfe_percentiles["6Mo"][0]],
-            "3Mo": [mae_percentiles["3Mo"][0], mfe_percentiles["3Mo"][0]],
-            "Total Median": [total_median_mae[0], total_median_mfe[0]]
-        })
-        st.dataframe(df_70_30)
+        st.dataframe(ev_table)
 
         # Separate Scatter Plots
         st.subheader("📈 MAE Scatter Plot")
