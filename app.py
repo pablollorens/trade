@@ -122,11 +122,16 @@ if uploaded_file is not None:
         })
         st.dataframe(df_70_30)
 
-        # Scatter Plot Visualization
-        st.subheader("📈 MAE vs. MFE Scatter Plot")
-        fig = px.scatter(df_1y, x="MAE", y="MFE", title="Scatter Plot of MAE vs MFE",
-                        labels={"MAE": "Maximum Adverse Excursion", "MFE": "Maximum Favorable Excursion"})
-        st.plotly_chart(fig)
+        # Separate Scatter Plots
+        st.subheader("📈 MAE Scatter Plot")
+        fig_mae = px.scatter(df_1y, x=df_1y.index, y="MAE", title="Scatter Plot of MAE",
+                             labels={"MAE": "Maximum Adverse Excursion", "index": "Trade Index"})
+        st.plotly_chart(fig_mae)
+
+        st.subheader("📈 MFE Scatter Plot")
+        fig_mfe = px.scatter(df_1y, x=df_1y.index, y="MFE", title="Scatter Plot of MFE",
+                             labels={"MFE": "Maximum Favorable Excursion", "index": "Trade Index"})
+        st.plotly_chart(fig_mfe)
 
 else:
     st.info("Upload a CSV file to get started.")
