@@ -13,13 +13,17 @@ if uploaded_file is not None:
     # Load CSV
     df = pd.read_csv(uploaded_file)
     df['Datetime'] = pd.to_datetime(df['Datetime'], errors='coerce')
-    df['DayOfWeek'] = df['Datetime'].dt.day_name()  # Extract day of the week
 
-    # Ensure the trade duration column exists
-    if 'TradeDuration' not in df.columns:
-        st.error("Error: 'TradeDuration' column not found in the CSV.")
+    # Ensure the required columns exist
+    required_columns = ["Duration", "MAE", "MFE"]
+    if not all(col in df.columns for col in required_columns):
+        st.error("Error: Required columns ('Duration', 'MAE', 'MFE') not found in the uploaded CSV.")
     else:
-        df['TradeDuration'] = pd.to_numeric(df['TradeDuration'], errors='coerce')
+        # Extract Day of the Week from Column C and ensure it's properly formatted
+        df.rename(columns={df.columns[2]: "DayOfWeek"}, inplace=True)
+
+        df['Duration'] = pd.to_numeric(df['Duration'], errors='coerce')
+        df['DayOfWeek'] = df['DayOfWeek'].astype(str)
 
         # Define timeframes based on the latest date in the dataset
         latest_date = df['Datetime'].max()
@@ -36,16 +40,16 @@ if uploaded_file is not None:
         # Day of the week selection filter
         days_selected = st.sidebar.multiselect(
             "Select Days of the Week", 
-            ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], 
-            default=["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+            df['DayOfWeek'].unique().tolist(), 
+            default=df['DayOfWeek'].unique().tolist()
         )
 
         # Trade duration filter (user selects min and max duration)
         min_duration, max_duration = st.sidebar.slider(
             "Select Trade Duration Range", 
-            int(df["TradeDuration"].min()), 
-            int(df["TradeDuration"].max()), 
-            (int(df["TradeDuration"].min()), int(df["TradeDuration"].max()))
+            int(df["Duration"].min()), 
+            int(df["Duration"].max()), 
+            (int(df["Duration"].min()), int(df["Duration"].max()))
         )
 
         # Filter data based on timeframe selection
@@ -61,7 +65,7 @@ if uploaded_file is not None:
 
         # Apply trade duration filter
         filtered_df = filtered_df[
-            (filtered_df["TradeDuration"] >= min_duration) & (filtered_df["TradeDuration"] <= max_duration)
+            (filtered_df["Duration"] >= min_duration) & (filtered_df["Duration"] <= max_duration)
         ]
 
         # Extract MAE & MFE
