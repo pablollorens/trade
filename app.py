@@ -87,16 +87,46 @@ if uploaded_file is not None:
         total_median_mae = [np.median([mae_percentiles["1Yr"][i], mae_percentiles["6Mo"][i], mae_percentiles["3Mo"][i]]) for i in range(3)]
         total_median_mfe = [np.median([mfe_percentiles["1Yr"][i], mfe_percentiles["6Mo"][i], mfe_percentiles["3Mo"][i]]) for i in range(3)]
 
-        # Separate Scatter Plots
-        st.subheader("📈 MAE Scatter Plot")
-        fig_mae = px.scatter(df_1y, x=df_1y.index, y="MAE", title="Scatter Plot of MAE",
-                             labels={"MAE": "Maximum Adverse Excursion", "index": "Trade Index"})
-        st.plotly_chart(fig_mae)
+        # Display separate tables for each percentile group
 
-        st.subheader("📈 MFE Scatter Plot")
-        fig_mfe = px.scatter(df_1y, x=df_1y.index, y="MFE", title="Scatter Plot of MFE",
-                             labels={"MFE": "Maximum Favorable Excursion", "index": "Trade Index"})
-        st.plotly_chart(fig_mfe)
+        # MAE 90th & MFE 10th
+        st.subheader("📋 MAE 90th & MFE 10th Percentile Table")
+        df_90_10 = pd.DataFrame({
+            "Percentile": ["MAE 90th", "MFE 10th"],
+            "1Yr": [mae_percentiles["1Yr"][2], mfe_percentiles["1Yr"][2]],
+            "6Mo": [mae_percentiles["6Mo"][2], mfe_percentiles["6Mo"][2]],
+            "3Mo": [mae_percentiles["3Mo"][2], mfe_percentiles["3Mo"][2]],
+            "Total Median": [total_median_mae[2], total_median_mfe[2]]
+        })
+        st.dataframe(df_90_10)
+
+        # MAE 80th & MFE 20th
+        st.subheader("📋 MAE 80th & MFE 20th Percentile Table")
+        df_80_20 = pd.DataFrame({
+            "Percentile": ["MAE 80th", "MFE 20th"],
+            "1Yr": [mae_percentiles["1Yr"][1], mfe_percentiles["1Yr"][1]],
+            "6Mo": [mae_percentiles["6Mo"][1], mfe_percentiles["6Mo"][1]],
+            "3Mo": [mae_percentiles["3Mo"][1], mfe_percentiles["3Mo"][1]],
+            "Total Median": [total_median_mae[1], total_median_mfe[1]]
+        })
+        st.dataframe(df_80_20)
+
+        # MAE 70th & MFE 30th
+        st.subheader("📋 MAE 70th & MFE 30th Percentile Table")
+        df_70_30 = pd.DataFrame({
+            "Percentile": ["MAE 70th", "MFE 30th"],
+            "1Yr": [mae_percentiles["1Yr"][0], mfe_percentiles["1Yr"][0]],
+            "6Mo": [mae_percentiles["6Mo"][0], mfe_percentiles["6Mo"][0]],
+            "3Mo": [mae_percentiles["3Mo"][0], mfe_percentiles["3Mo"][0]],
+            "Total Median": [total_median_mae[0], total_median_mfe[0]]
+        })
+        st.dataframe(df_70_30)
+
+        # Scatter Plot Visualization
+        st.subheader("📈 MAE vs. MFE Scatter Plot")
+        fig = px.scatter(df_1y, x="MAE", y="MFE", title="Scatter Plot of MAE vs MFE",
+                        labels={"MAE": "Maximum Adverse Excursion", "MFE": "Maximum Favorable Excursion"})
+        st.plotly_chart(fig)
 
 else:
     st.info("Upload a CSV file to get started.")
