@@ -66,7 +66,7 @@ if uploaded_file is not None:
         df_6m = df_6m[(df_6m["Duration"] >= min_duration) & (df_6m["Duration"] <= max_duration)]
         df_3m = df_3m[(df_3m["Duration"] >= min_duration) & (df_3m["Duration"] <= max_duration)]
 
-        # Define percentile settings
+        # Define percentile groups
         mae_percentiles_values = [0.7, 0.8, 0.9]  # 70th, 80th, 90th for MAE
         mfe_percentiles_values = [0.3, 0.2, 0.1]  # 30th, 20th, 10th for MFE
 
@@ -87,33 +87,16 @@ if uploaded_file is not None:
         total_median_mae = [np.median([mae_percentiles["1Yr"][i], mae_percentiles["6Mo"][i], mae_percentiles["3Mo"][i]]) for i in range(3)]
         total_median_mfe = [np.median([mfe_percentiles["1Yr"][i], mfe_percentiles["6Mo"][i], mfe_percentiles["3Mo"][i]]) for i in range(3)]
 
-        # Format the structured table
-        structured_table_data = {
-            "Percentile": ["MAE 80th", "MAE 90th", "MFE 20th", "MFE 10th"],
-            "1Yr": [mae_percentiles["1Yr"][1], mae_percentiles["1Yr"][2], mfe_percentiles["1Yr"][1], mfe_percentiles["1Yr"][2]],
-            "6Mo": [mae_percentiles["6Mo"][1], mae_percentiles["6Mo"][2], mfe_percentiles["6Mo"][1], mfe_percentiles["6Mo"][2]],
-            "3Mo": [mae_percentiles["3Mo"][1], mae_percentiles["3Mo"][2], mfe_percentiles["3Mo"][1], mfe_percentiles["3Mo"][2]],
-            "Total Median": [total_median_mae[1], total_median_mae[2], total_median_mfe[1], total_median_mfe[2]],
-        }
+        # Separate Scatter Plots
+        st.subheader("📈 MAE Scatter Plot")
+        fig_mae = px.scatter(df_1y, x=df_1y.index, y="MAE", title="Scatter Plot of MAE",
+                             labels={"MAE": "Maximum Adverse Excursion", "index": "Trade Index"})
+        st.plotly_chart(fig_mae)
 
-        # Convert to DataFrame and display as a table
-        structured_table_df = pd.DataFrame(structured_table_data)
-        st.subheader("📋 MAE & MFE Percentile Table")
-        st.dataframe(structured_table_df)
-
-        # Compute SL/TP based on median percentiles
-        sl = np.median(total_median_mae)
-        tp = np.median(total_median_mfe)
-
-        st.subheader("📌 Suggested SL/TP Levels")
-        st.write(f"🔹 **Stop-Loss (SL):** {sl:.2f}")
-        st.write(f"🔹 **Take-Profit (TP):** {tp:.2f}")
-
-        # Scatter Plot Visualization
-        st.subheader("📈 MAE vs. MFE Scatter Plot")
-        fig = px.scatter(df_1y, x="MAE", y="MFE", title="Scatter Plot of MAE vs MFE",
-                        labels={"MAE": "Maximum Adverse Excursion", "MFE": "Maximum Favorable Excursion"})
-        st.plotly_chart(fig)
+        st.subheader("📈 MFE Scatter Plot")
+        fig_mfe = px.scatter(df_1y, x=df_1y.index, y="MFE", title="Scatter Plot of MFE",
+                             labels={"MFE": "Maximum Favorable Excursion", "index": "Trade Index"})
+        st.plotly_chart(fig_mfe)
 
 else:
     st.info("Upload a CSV file to get started.")
