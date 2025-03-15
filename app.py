@@ -98,6 +98,18 @@ if uploaded_file is not None:
         })
         st.dataframe(ev_table)
 
+        # Display separate percentile tables
+        for i, label in enumerate(["70th MAE & 30th MFE", "80th MAE & 20th MFE", "90th MAE & 10th MFE"]):
+            st.subheader(f"📋 {label} Percentile Table")
+            df_percentile = pd.DataFrame({
+                "Percentile": [f"MAE {label.split(' ')[0]}", f"MFE {label.split(' ')[-2]}"],
+                "1Yr": [mae_percentiles["1Yr"][i], mfe_percentiles["1Yr"][i]],
+                "6Mo": [mae_percentiles["6Mo"][i], mfe_percentiles["6Mo"][i]],
+                "3Mo": [mae_percentiles["3Mo"][i], mfe_percentiles["3Mo"][i]],
+                "Total Median": [total_median_mae[i], total_median_mfe[i]]
+            })
+            st.dataframe(df_percentile)
+
         # Separate Scatter Plots
         st.subheader("📈 MAE Scatter Plot")
         fig_mae = px.scatter(df_1y, x=df_1y.index, y="MAE", title="Scatter Plot of MAE",
