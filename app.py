@@ -24,32 +24,58 @@ if uploaded_file is not None:
         df['Duration'] = pd.to_numeric(df['Duration'], errors='coerce')
         df['DayOfWeek'] = df['DayOfWeek'].astype(str)
 
+        # ================================
+        # 🔍 Expected Value (EV) Tester
+        # ================================
+        st.header("🔍 Expected Value (EV) Tester")
+
+        # User inputs for MAE, MFE thresholds, and dollar amount per trade
+        user_mae = st.number_input("Enter MAE Threshold (SL Level)", min_value=0.0, step=0.01, value=0.2)
+        user_mfe = st.number_input("Enter MFE Threshold (TP Level)", min_value=0.0, step=0.01, value=0.5)
+        trade_amount = st.number_input("Enter Dollar Amount per Trade ($)", min_value=1.0, step=1.0, value=100.0)
+
+        # Day of the week selection filter
+        days_selected = st.multiselect(
+            "Filter by Days of the Week", 
+            df['DayOfWeek'].unique().tolist(), 
+            default=df['DayOfWeek'].unique().tolist()
+        )
+
+        # Filter dataset based on selected days
+        df_filtered = df[df['DayOfWeek'].isin(days_selected)]
+
+        # Count Wins (TP) and Losses (SL)
+        win_trades = df_filtered[df_filtered["MFE"] >= user_mfe].shape[0]
+        loss_trades = df_filtered[(df_filtered["MAE"] >= user_mae) | (df_filtered["MFE"] < user_mfe)].shape[0]
+        total_trades = win_trades + loss_trades
+
+        if total_trades > 0:
+            win_rate = win_trades / total_trades
+            loss_rate = loss_trades / total_trades
+
+            # Calculate Expected Value (EV)
+            expected_value = (win_rate * trade_amount) - (loss_rate * trade_amount)
+
+            # Display Results
+            st.subheader("📊 EV Tester Results")
+            st.write(f"✔️ **Win Rate:** {win_rate:.2%}")
+            st.write(f"❌ **Loss Rate:** {loss_rate:.2%}")
+            st.write(f"💰 **Expected Value per Trade:** ${expected_value:.2f}")
+
+        else:
+            st.warning("No trades found that match the selected criteria. Adjust your inputs.")
+
+        # =====================================
+        # 📈 MAE & MFE Percentile Analysis
+        # =====================================
+        st.header("📈 MAE & MFE Analysis")
+        st.info("Continue analyzing percentile tables, scatter plots, and further insights below.")
+
         # Define timeframes based on the latest date in the dataset
         latest_date = df['Datetime'].max()
         one_year_ago = latest_date - pd.DateOffset(years=1)
         six_months_ago = latest_date - pd.DateOffset(months=6)
         three_months_ago = latest_date - pd.DateOffset(months=3)
-
-        # Sidebar Filters
-        st.sidebar.header("Filters")
-
-        # User selects timeframe for analysis
-        timeframe = st.sidebar.selectbox("Select Timeframe", ["1-Year", "6-Month", "3-Month"])
-
-        # Day of the week selection filter
-        days_selected = st.sidebar.multiselect(
-            "Select Days of the Week", 
-            df['DayOfWeek'].unique().tolist(), 
-            default=df['DayOfWeek'].unique().tolist()
-        )
-
-        # Trade duration filter (user selects min and max duration)
-        min_duration, max_duration = st.sidebar.slider(
-            "Select Trade Duration Range", 
-            int(df["Duration"].min()), 
-            int(df["Duration"].max()), 
-            (int(df["Duration"].min()), int(df["Duration"].max()))
-        )
 
         # Filter data based on timeframe selection
         df_1y = df[df['Datetime'] >= one_year_ago]
@@ -60,11 +86,6 @@ if uploaded_file is not None:
         df_1y = df_1y[df_1y['DayOfWeek'].isin(days_selected)]
         df_6m = df_6m[df_6m['DayOfWeek'].isin(days_selected)]
         df_3m = df_3m[df_3m['DayOfWeek'].isin(days_selected)]
-
-        # Apply trade duration filter
-        df_1y = df_1y[(df_1y["Duration"] >= min_duration) & (df_1y["Duration"] <= max_duration)]
-        df_6m = df_6m[(df_6m["Duration"] >= min_duration) & (df_6m["Duration"] <= max_duration)]
-        df_3m = df_3m[(df_3m["Duration"] >= min_duration) & (df_3m["Duration"] <= max_duration)]
 
         # Define percentile groups
         mae_percentiles_values = [0.7, 0.8, 0.9]  # 70th, 80th, 90th for MAE
@@ -86,29 +107,6 @@ if uploaded_file is not None:
         # Compute median of each percentile across the 3 timeframes
         total_median_mae = [np.median([mae_percentiles["1Yr"][i], mae_percentiles["6Mo"][i], mae_percentiles["3Mo"][i]]) for i in range(3)]
         total_median_mfe = [np.median([mfe_percentiles["1Yr"][i], mfe_percentiles["6Mo"][i], mfe_percentiles["3Mo"][i]]) for i in range(3)]
-
-        # Calculate Expected Value (EV) using the median MFE and MAE
-        ev_values = [(total_median_mfe[i] - total_median_mae[i]) for i in range(3)]
-
-        # Display Expected Value Table
-        st.subheader("📊 Expected Value (EV) Based on Median MFE & MAE")
-        ev_table = pd.DataFrame({
-            "Percentile": ["EV (70th MAE, 30th MFE)", "EV (80th MAE, 20th MFE)", "EV (90th MAE, 10th MFE)"],
-            "Expected Value": ev_values
-        })
-        st.dataframe(ev_table)
-
-        # Display separate percentile tables
-        for i, label in enumerate(["70th MAE & 30th MFE", "80th MAE & 20th MFE", "90th MAE & 10th MFE"]):
-            st.subheader(f"📋 {label} Percentile Table")
-            df_percentile = pd.DataFrame({
-                "Percentile": [f"MAE {label.split(' ')[0]}", f"MFE {label.split(' ')[-2]}"],
-                "1Yr": [mae_percentiles["1Yr"][i], mfe_percentiles["1Yr"][i]],
-                "6Mo": [mae_percentiles["6Mo"][i], mfe_percentiles["6Mo"][i]],
-                "3Mo": [mae_percentiles["3Mo"][i], mfe_percentiles["3Mo"][i]],
-                "Total Median": [total_median_mae[i], total_median_mfe[i]]
-            })
-            st.dataframe(df_percentile)
 
         # Separate Scatter Plots
         st.subheader("📈 MAE Scatter Plot")
