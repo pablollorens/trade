@@ -14,8 +14,14 @@ if uploaded_file is not None:
         # Load CSV and display debug info
         df = pd.read_csv(uploaded_file)
         st.write("✅ File uploaded successfully!")
-        st.write("📊 Data Preview:", df.head())  # Show first 5 rows
-        st.write("🔍 Columns in file:", df.columns.tolist())
+
+        # Show the full dataset (limit large files to first 1000 rows)
+        st.subheader("📊 Full Uploaded Dataset Preview")
+        if len(df) > 1000:
+            st.write("⚠️ Displaying first 1000 rows (file too large).")
+            st.dataframe(df.head(1000))
+        else:
+            st.dataframe(df)
 
         # Convert Datetime column if it exists
         if "Datetime" in df.columns:
